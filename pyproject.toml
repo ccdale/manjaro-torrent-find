@@ -1,0 +1,24 @@
+[tool.poetry]
+name = "manjaro-torrent-find"
+version = "0.1.2"
+description = "Searches the OSDN Manjaro project for torrent files and downloads them."
+authors = ["Chris Allison <chris.charles.allison+mtf@gmail.com>"]
+license = "GPL-3.0-or-later"
+readme = "README.rst"
+repository = ""
+
+[tool.poetry.dependencies]
+python = "^3.6"
+requests = "^2.23.0"
+bs4 = "^0.0.1"
+lxml = "^4.5.0"
+
+[tool.poetry.dev-dependencies]
+pytest = "^5.2"
+
+[tool.poetry.scripts]
+mtf = "manjaro_torrent_find.mtf:goBabe"
+
+[build-system]
+requires = ["poetry>=0.12"]
+build-backend = "poetry.masonry.api"
