@@ -74,6 +74,14 @@ version = "0.4.3"
 
 [[package]]
 category = "main"
+description = "Pythonic Unix C-style parser for command line options in few LOC"
+name = "getopt2"
+optional = false
+python-versions = ">=3.6"
+version = "0.0.3"
+
+[[package]]
+category = "main"
 description = "Internationalized Domain Names in Applications (IDNA)"
 name = "idna"
 optional = false
@@ -257,7 +265,7 @@ docs = ["sphinx", "jaraco.packaging (>=3.2)", "rst.linker (>=1.9)"]
 testing = ["jaraco.itertools", "func-timeout"]
 
 [metadata]
-content-hash = "8fd3820e0389cc08640943b19916ac28d4f1ba20d56cd2ae59a98eed4169f36d"
+content-hash = "e05affe4b4c4876fef7f65eceafb1e4ab19d539364260bd0079ea9f4de3ed76c"
 python-versions = "^3.6"
 
 [metadata.files]
@@ -288,6 +296,9 @@ chardet = [
 colorama = [
     {file = "colorama-0.4.3-py2.py3-none-any.whl", hash = "sha256:7d73d2a99753107a36ac6b455ee49046802e59d9d076ef8e47b61499fa29afff"},
     {file = "colorama-0.4.3.tar.gz", hash = "sha256:e96da0d330793e2cb9485e9ddfd918d456036c7149416295932478192f4436a1"},
+]
+getopt2 = [
+    {file = "getopt2-0.0.3.tar.gz", hash = "sha256:ea3ea9d22ee65d285f79a1e907681c189ecb7797611fbd505cc00373bd809ca7"},
 ]
 idna = [
     {file = "idna-2.9-py2.py3-none-any.whl", hash = "sha256:a068a21ceac8a4d63dbfd964670474107f541babbd2250d61922f029858365fa"},
