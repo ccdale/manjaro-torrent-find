@@ -100,7 +100,7 @@ def osdnWalk(pageurl, path=None, seen=[]):
             print(f"long path {path}, recursion has probably failed, sorry.")
             sys.exit(1)
     else:
-        printf(f"requesting start page: {pageurl}")
+        print(f"requesting start page: {pageurl}")
     if pageurl not in seen:
         seen.append(pageurl)
         time.sleep(slow)
