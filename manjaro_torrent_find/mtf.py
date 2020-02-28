@@ -23,7 +23,6 @@ import requests
 from typing import List
 from typing import Tuple
 
-projects = ["manjaro", "manjaro-community"]
 endings = ["torrent", "sha1", "sha256", "sig"]
 burl = "https://osdn.net"
 outdir = os.getcwd()
@@ -62,6 +61,84 @@ def getRSSFeed(rssurl):
                 fns[tmp[1]][tmp[2]] = []
             fns[tmp[1]][tmp[2]].append(tmp[3])
     return fns
+
+
+def extractUrlFromTableRow(trrow):
+    """Extracts the url for the file from the table row, trrow."""
+    url = None
+    row = BS(trrow, "lxml")
+    tds = row.find_all("td")
+    for td in tds:
+        if "class" in td and td["class"] == "name":
+            link = BS.find_all("a")
+            url = a["href"]
+    return url
+
+
+def osdnWalk(pageurl, path=None):
+    """Scrapes the OSDN page for directories and filenames.
+
+    Recurses down the tree of directories adding to the
+    output dictionary.
+
+    Args:
+        pageurl: the url to scrape
+
+    Returns:
+        dict:
+        {
+        "edition":
+            {
+            "version":
+                ["file1", "file2", ..., "filen"]
+            }
+        }
+    """
+    furls = []
+    dirs = {}
+    xpath = "" if path is None else f"{path}/"
+    # checkpoint to test we aren't recursing over and over
+    if path is not None:
+        tmp = path.split("/")
+        if len(tmp) > 1:
+            print(f"long path {path}")
+            sys.exit(1)
+    print(f"requesting {pageurl}")
+    r = requests.get(pageurl)
+    if r.status_code == 200:
+        hpage = BS(r.text, "lxml")
+        rows = hpage.find_all("tr")
+        print(f"found {len(rows)} rows")
+        for row in rows:
+            url, xclass = extractUrlByClass(row)
+            if url is not None:
+                if xclass == "file":
+                    print(f"adding file {url}")
+                    furls.append(url)
+                elif xclass == "dir":
+                    bname = os.path.basename(url)
+                    if url.startswith("/"):
+                        url = f"{burl}{url}"
+                    else:
+                        url = f"{burl}/{url}"
+                    print("adding dir {url}")
+                    ypath = f"{xpath}{bname}"
+                    xdirs, xfurls = osdnWalk(url, ypath)
+                    dirs[ypath] = {"dirs": xdirs, "files": xfurls}
+                    print(f"found: {dirs[ypath]}")
+    print(f"returning ({dirs}, {furls})")
+    return (dirs, furls)
+
+
+def extractUrlByClass(row):
+    """Extracts the url if the class is file or dir."""
+    url = None
+    atts = row.atts
+    if "class" in atts:
+        xclass = atts["class"][0]
+        if xclass in ["file", "dir"]:
+            url = extractUrlFromTableRow(row)
+    return (url, xclass)
 
 
 def getRedirectUrl(xstr):
@@ -118,9 +195,11 @@ def downloadViaRedirect(fn, url):
         print(f"failed to get initial url for {fn} status code: {r.status_code}")
 
 
-@getopt2(sys.argv[1:], "ho:p:r")
+@getopt2(sys.argv[1:], "hro:p:")
 def goBabe(opts: List[Tuple]):
+    global outdir
     dorss = False
+    projects = ["manjaro", "manjaro-community"]
     for opt, arg in opts:
         if opt == "-h":
             usage()
@@ -135,6 +214,8 @@ def goBabe(opts: List[Tuple]):
         for project in projects:
             print(f"Obtaining RSS feed for {project}")
             getRssProject(project)
+    else:
+        dirs, furls = osdnWalk(f"{burl}/projects/manjaro/storage")
 
     if __name__ == "__main__":
         goBabe()
