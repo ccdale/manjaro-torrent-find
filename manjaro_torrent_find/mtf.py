@@ -218,6 +218,27 @@ def downloadViaRedirect(fn, url):
         print(f"failed to get initial url for {fn} status code: {r.status_code}")
 
 
+def getFile(fn):
+    for ending in endings:
+        if fn.endswith(ending):
+            url = f"{burl}/{os.path.dirname(fn)}"
+            bfn = os.path.basename(fn)
+            downloadViaRedirect(bfn, url)
+            break
+
+
+def downloadFiles(dirs):
+    for nn in dirs:
+        if "dirs" in dirs[nn]:
+            downloadFiles(dirs[nn])
+        if "files" in dirs[nn]:
+            for fn in dirs[nn]["files"]:
+                getFile(fn)
+    if "files" in dirs:
+        for fn in dirs["files"]:
+            getFile(fn)
+
+
 def printDir(dirs, indent=""):
     for nn in dirs:
         print(f"{indent}{nn}")
