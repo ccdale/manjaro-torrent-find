@@ -9,13 +9,19 @@ Options:
     -o output directory (default: current directory)
     -p project (either 'manjaro' or 'manjaro-community') (default: both)
     -r only scrape the OSDN RSS feeds to find the torrent files
+    -t length of time to wait before requesting a new page/file from OSDN (default: 1 second)
 
 With `-o` the output directory must already exist, otherwise the
 current directory is used.
+
+`-t` defaults to 1, though it could be a fracion i.e. 0.25 and is amount of time
+to wait before requesting a new 'thing' from OSDN - this is to ensure that we don't
+overload the OSDN servers (leave it at 1 second to be nice).
 """
 
 import os
 import sys
+import time
 
 from bs4 import BeautifulSoup as BS
 from getopt2 import getopt2
@@ -26,6 +32,7 @@ from typing import Tuple
 endings = ["torrent", "sha1", "sha256", "sig"]
 burl = "https://osdn.net"
 outdir = os.getcwd()
+slow = 1
 
 
 def usage():
@@ -48,6 +55,7 @@ def getRSSFeed(rssurl):
         }
     """
     fns = None
+    time.sleep(slow)
     r = requests.get(rssurl)
     if r.status_code == 200:
         rss = BS(r.text, "lxml")
@@ -63,19 +71,7 @@ def getRSSFeed(rssurl):
     return fns
 
 
-def extractUrlFromTableRow(trrow):
-    """Extracts the url for the file from the table row, trrow."""
-    url = None
-    row = BS(trrow, "lxml")
-    tds = row.find_all("td")
-    for td in tds:
-        if "class" in td and td["class"] == "name":
-            link = BS.find_all("a")
-            url = a["href"]
-    return url
-
-
-def osdnWalk(pageurl, path=None):
+def osdnWalk(pageurl, path=None, seen=[]):
     """Scrapes the OSDN page for directories and filenames.
 
     Recurses down the tree of directories adding to the
@@ -100,41 +96,65 @@ def osdnWalk(pageurl, path=None):
     # checkpoint to test we aren't recursing over and over
     if path is not None:
         tmp = path.split("/")
-        if len(tmp) > 1:
+        if len(tmp) > 3:
             print(f"long path {path}")
             sys.exit(1)
-    print(f"requesting {pageurl}")
-    r = requests.get(pageurl)
-    if r.status_code == 200:
-        hpage = BS(r.text, "lxml")
-        rows = hpage.find_all("tr")
-        print(f"found {len(rows)} rows")
-        for row in rows:
-            url, xclass = extractUrlByClass(row)
-            if url is not None:
-                if xclass == "file":
-                    print(f"adding file {url}")
-                    furls.append(url)
-                elif xclass == "dir":
-                    bname = os.path.basename(url)
-                    if url.startswith("/"):
-                        url = f"{burl}{url}"
-                    else:
-                        url = f"{burl}/{url}"
-                    print("adding dir {url}")
-                    ypath = f"{xpath}{bname}"
-                    xdirs, xfurls = osdnWalk(url, ypath)
-                    dirs[ypath] = {"dirs": xdirs, "files": xfurls}
-                    print(f"found: {dirs[ypath]}")
-    print(f"returning ({dirs}, {furls})")
+    if pageurl not in seen:
+        seen.append(pageurl)
+        time.sleep(slow)
+        print(f"requesting {pageurl}")
+        r = requests.get(pageurl)
+        if r.status_code == 200:
+            hpage = BS(r.text, "lxml")
+            rows = hpage.find_all("tr")
+            # print(f"found {len(rows)} rows")
+            for row in rows:
+                url, xclass = extractUrlByClass(row)
+                # print(f"url: {url}, class: {xclass}")
+                if url is not None:
+                    if xclass == "file":
+                        # print(f"adding file {url}")
+                        furls.append(url)
+                    elif xclass == "dir":
+                        bname = os.path.basename(url)
+                        if url.startswith("/"):
+                            url = f"{burl}{url}"
+                        else:
+                            url = f"{burl}/{url}"
+                        print(f"descending into {url}")
+                        ypath = f"{xpath}{bname}"
+                        xdirs, xfurls = osdnWalk(url, ypath, seen)
+                        dirs[ypath] = {"dirs": xdirs, "files": xfurls}
+                        # print(f"found: {dirs[ypath]}")
+    else:
+        print(f"have already seen {pageurl}: seen: {seen}")
+    # print(f"returning ({dirs}, {furls})")
     return (dirs, furls)
+
+
+def extractUrlFromTableRow(trrow):
+    """Extracts the url for the file from the table row, trrow."""
+    url = None
+    row = BS(str(trrow), "lxml")
+    tds = row.find_all("td")
+    for td in tds:
+        atts = td.attrs
+        # print(f"td string: {td.string}, attrs: {atts}")
+        if atts is not None and "class" in atts and atts["class"][0] == "name":
+            # print(f"finding link in {td}. atts: {atts}")
+            link = td.find("a")
+            if "(Parent folder)" != link.get_text().strip():
+                url = link["href"]
+                # print(f"string: '{link.get_text().strip()}', url: {url}")
+    return url
 
 
 def extractUrlByClass(row):
     """Extracts the url if the class is file or dir."""
     url = None
     xclass = None
-    atts = row.atts
+    atts = row.attrs
+    # print(f"row: {row} atts: {atts}")
     if atts is not None and "class" in atts:
         xclass = atts["class"][0]
         if xclass in ["file", "dir"]:
@@ -176,6 +196,7 @@ def getRssProject(project):
 
 
 def downloadViaRedirect(fn, url):
+    time.sleep(slow)
     r = requests.get(f"{url}/{fn}")
     if r.status_code == 200:
         rdir = getRedirectUrl(r.text)
@@ -183,6 +204,7 @@ def downloadViaRedirect(fn, url):
             rurl = f"{burl}{rdir}"
         else:
             rurl = f"{burl}/{rdir}"
+        time.sleep(slow)
         r = requests.get(rurl)
         if r.status_code == 200:
             outfn = os.path.abspath("/".join([outdir, fn]))
@@ -196,9 +218,23 @@ def downloadViaRedirect(fn, url):
         print(f"failed to get initial url for {fn} status code: {r.status_code}")
 
 
-@getopt2(sys.argv[1:], "hro:p:")
+def printDir(dirs, indent=""):
+    for nn in dirs:
+        print(f"{indent}{nn}")
+        if "dirs" in dirs[nn]:
+            printDir(dirs[nn]["dirs"], indent=indent + "  ")
+        for fn in dirs[nn]["files"]:
+            # print(f"{indent}  {os.path.basename(fn)}")
+            print(f"{indent}  {fn}")
+    if "files" in dirs:
+        for fn in dirs["files"]:
+            # print(f"{indent}  {os.path.basename(fn)}")
+            print(f"{indent}  {fn}")
+
+
+@getopt2(sys.argv[1:], "ho:p:rt:")
 def goBabe(opts: List[Tuple]):
-    global outdir
+    global outdir, slow
     dorss = False
     projects = ["manjaro", "manjaro-community"]
     for opt, arg in opts:
@@ -211,12 +247,18 @@ def goBabe(opts: List[Tuple]):
             projects = [arg]
         elif opt == "-r":
             dorss = True
+        elif opt == "-t":
+            slow = float(arg)
     if dorss:
         for project in projects:
             print(f"Obtaining RSS feed for {project}")
             getRssProject(project)
     else:
-        dirs, furls = osdnWalk(f"{burl}/projects/manjaro/storage")
+        for project in projects:
+            dirs, furls = osdnWalk(f"{burl}/projects/{project}/storage")
+            printDir(dirs)
+            # print(f"found: {dirs}")
+            print(f"urls: {furls}")
 
     if __name__ == "__main__":
         goBabe()
