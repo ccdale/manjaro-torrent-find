@@ -96,8 +96,8 @@ def osdnWalk(pageurl, path=None, seen=[]):
     # checkpoint to test we aren't recursing over and over
     if path is not None:
         tmp = path.split("/")
-        if len(tmp) > 3:
-            print(f"long path {path}")
+        if len(tmp) > 4:
+            print(f"long path {path}, recursion has probably failed, sorry.")
             sys.exit(1)
     if pageurl not in seen:
         seen.append(pageurl)
@@ -221,8 +221,12 @@ def downloadViaRedirect(fn, url):
 def getFile(fn):
     for ending in endings:
         if fn.endswith(ending):
-            url = f"{burl}/{os.path.dirname(fn)}"
+            if fn.startswith("/"):
+                url = f"{burl}{os.path.dirname(fn)}"
+            else:
+                url = f"{burl}/{os.path.dirname(fn)}"
             bfn = os.path.basename(fn)
+            # print(f"requesting: {url}/{bfn}")
             downloadViaRedirect(bfn, url)
             break
 
@@ -247,6 +251,7 @@ def printDir(dirs, indent=""):
         for fn in dirs[nn]["files"]:
             # print(f"{indent}  {os.path.basename(fn)}")
             print(f"{indent}  {fn}")
+            getFile(fn)
     if "files" in dirs:
         for fn in dirs["files"]:
             # print(f"{indent}  {os.path.basename(fn)}")
@@ -278,7 +283,7 @@ def goBabe(opts: List[Tuple]):
         for project in projects:
             dirs, furls = osdnWalk(f"{burl}/projects/{project}/storage")
             printDir(dirs)
-            downloadFiles(dirs)
+            # downloadFiles(dirs)
             # print(f"found: {dirs}")
 
     if __name__ == "__main__":

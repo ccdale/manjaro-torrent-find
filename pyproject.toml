@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "manjaro-torrent-find"
-version = "0.2.3"
+version = "0.2.4"
 description = "Searches the OSDN Manjaro project for torrent files and downloads them."
 authors = ["Chris Allison <chris.charles.allison+mtf@gmail.com>"]
 license = "GPL-3.0-or-later"
