@@ -134,7 +134,7 @@ def extractUrlByClass(row):
     """Extracts the url if the class is file or dir."""
     url = None
     atts = row.atts
-    if "class" in atts:
+    if atts is not None and "class" in atts:
         xclass = atts["class"][0]
         if xclass in ["file", "dir"]:
             url = extractUrlFromTableRow(row)
