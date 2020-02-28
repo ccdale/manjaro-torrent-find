@@ -102,7 +102,7 @@ def osdnWalk(pageurl, path=None, seen=[]):
     if pageurl not in seen:
         seen.append(pageurl)
         time.sleep(slow)
-        print(f"requesting {pageurl}")
+        # print(f"requesting {pageurl}")
         r = requests.get(pageurl)
         if r.status_code == 200:
             hpage = BS(r.text, "lxml")
