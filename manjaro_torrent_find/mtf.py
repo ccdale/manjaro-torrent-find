@@ -278,8 +278,8 @@ def goBabe(opts: List[Tuple]):
         for project in projects:
             dirs, furls = osdnWalk(f"{burl}/projects/{project}/storage")
             printDir(dirs)
+            downloadFiles(dirs)
             # print(f"found: {dirs}")
-            print(f"urls: {furls}")
 
     if __name__ == "__main__":
         goBabe()
