@@ -99,6 +99,8 @@ def osdnWalk(pageurl, path=None, seen=[]):
         if len(tmp) > 4:
             print(f"long path {path}, recursion has probably failed, sorry.")
             sys.exit(1)
+    else:
+        printf(f"requesting start page: {pageurl}")
     if pageurl not in seen:
         seen.append(pageurl)
         time.sleep(slow)
@@ -195,7 +197,7 @@ def getRssProject(project):
         getEdition(fns[edition], f"{purl}/{edition}")
 
 
-def downloadViaRedirect(fn, url):
+def downloadViaRedirect(fn, url, indent="    "):
     time.sleep(slow)
     r = requests.get(f"{url}/{fn}")
     if r.status_code == 200:
@@ -211,14 +213,14 @@ def downloadViaRedirect(fn, url):
             with open(outfn, "wb") as ofn:
                 for chk in r.iter_content():
                     ofn.write(chk)
-            print(f"    {fn} saved ok to {outdir}.")
+            print(f"{indent}{fn} saved to {outdir}/{fn}.")
         else:
             print(f"Failed to download via redirect {fn}: status code: {r.status_code}")
     else:
         print(f"failed to get initial url for {fn} status code: {r.status_code}")
 
 
-def getFile(fn):
+def getFile(fn, indent=""):
     for ending in endings:
         if fn.endswith(ending):
             if fn.startswith("/"):
@@ -227,7 +229,7 @@ def getFile(fn):
                 url = f"{burl}/{os.path.dirname(fn)}"
             bfn = os.path.basename(fn)
             # print(f"requesting: {url}/{bfn}")
-            downloadViaRedirect(bfn, url)
+            downloadViaRedirect(bfn, url, indent=indent)
             break
 
 
@@ -251,7 +253,7 @@ def printDir(dirs, indent=""):
         for fn in dirs[nn]["files"]:
             # print(f"{indent}  {os.path.basename(fn)}")
             print(f"{indent}  {fn}")
-            getFile(fn)
+            getFile(fn, f"{indent}  ")
     if "files" in dirs:
         for fn in dirs["files"]:
             # print(f"{indent}  {os.path.basename(fn)}")
