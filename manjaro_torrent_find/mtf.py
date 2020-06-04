@@ -264,7 +264,7 @@ def printDir(dirs, indent=""):
 def goBabe(opts: List[Tuple]):
     global outdir, slow
     dorss = False
-    projects = ["manjaro", "manjaro-community"]
+    projects = ["manjaro", "manjaro-community", "manjaro-archive"]
     for opt, arg in opts:
         if opt == "-h":
             usage()
