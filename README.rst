@@ -24,7 +24,7 @@ Once the local python scripts directory is on your path, just execute `mtf`.::
     Options:
         -h this help
         -o output directory (default: current directory)
-        -p project (either 'manjaro' or 'manjaro-community') (default: both)
+        -p project (either 'manjaro', 'manjaro-community', or 'manjaro-archive') (default: all)
         -r only scrape the OSDN RSS feeds to find the torrent files
         -t length of time to wait before requesting a new page/file from OSDN (default: 1 second)
 
