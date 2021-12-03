@@ -297,7 +297,7 @@ def goBabe(output, projects, rss, delay):
         if os.path.is_dir(output):
             outdir = output
     if projects:
-        xprojects = [projects]
+        xprojects = projects.split(",")
     dorss = rss
     slow = delay
     # for opt, arg in opts:
