@@ -24,10 +24,13 @@ import sys
 import time
 
 from bs4 import BeautifulSoup as BS
-from getopt2 import getopt2
+import click
+
+# from getopt2 import getopt2
 import requests
-from typing import List
-from typing import Tuple
+
+# from typing import List
+# from typing import Tuple
 
 endings = ["torrent", "sha1", "sha256", "sig"]
 burl = "https://osdn.net"
@@ -63,11 +66,13 @@ def getRSSFeed(rssurl):
         fns = {}
         for item in items:
             tmp = item.title.string.split("/")
-            if tmp[1] not in fns:
+            if len(tmp) > 1 and tmp[1] not in fns:
                 fns[tmp[1]] = {}
-            if tmp[2] not in fns[tmp[1]]:
+            if len(tmp) > 2 and tmp[2] not in fns[tmp[1]]:
                 fns[tmp[1]][tmp[2]] = []
-            fns[tmp[1]][tmp[2]].append(tmp[3])
+            if len(tmp) > 3:
+                fns[tmp[1]][tmp[2]].append(tmp[3])
+    # print(f"{fns=}")
     return fns
 
 
@@ -260,33 +265,63 @@ def printDir(dirs, indent=""):
             print(f"{indent}  {fn}")
 
 
-@getopt2(sys.argv[1:], "ho:p:rt:")
-def goBabe(opts: List[Tuple]):
+# @getopt2(sys.argv[1:], "ho:p:rt:")
+@click.command()
+@click.option("-o", "--output", type=click.Path(), help="The output directory")
+@click.option(
+    "-p",
+    "--projects",
+    default="manjaro, manjaro-community, manjaro-archive",
+    help="list of project(s) to scan: manjaro, manjaro-community, manjaro-archive default: all",
+)
+@click.option(
+    "-r",
+    "--rss",
+    type=click.BOOL,
+    default=False,
+    help="scan RSS feed not the project pages",
+)
+@click.option(
+    "-t",
+    "--time",
+    "delay",
+    type=click.FLOAT,
+    default=1.00,
+    help="amount of time to wait (float) between each request to the web server - the nice value",
+)
+def goBabe(output, projects, rss, delay):
     global outdir, slow
     dorss = False
-    projects = ["manjaro", "manjaro-community", "manjaro-archive"]
-    for opt, arg in opts:
-        if opt == "-h":
-            usage()
-        elif opt == "-o":
-            if os.path.isdir(arg):
-                outdir = arg
-        elif opt == "-p":
-            projects = [arg]
-        elif opt == "-r":
-            dorss = True
-        elif opt == "-t":
-            slow = float(arg)
+    xprojects = ["manjaro", "manjaro-community", "manjaro-archive"]
+    if output:
+        if os.path.is_dir(output):
+            outdir = output
+    if projects:
+        xprojects = [projects]
+    dorss = rss
+    slow = delay
+    # for opt, arg in opts:
+    #     if opt == "-h":
+    #         usage()
+    #     elif opt == "-o":
+    #         if os.path.isdir(arg):
+    #             outdir = arg
+    #     elif opt == "-p":
+    #         projects = [arg]
+    #     elif opt == "-r":
+    #         dorss = True
+    #     elif opt == "-t":
+    #         slow = float(arg)
     if dorss:
-        for project in projects:
+        for project in xprojects:
             print(f"Obtaining RSS feed for {project}")
             getRssProject(project)
     else:
-        for project in projects:
+        for project in xprojects:
             dirs, furls = osdnWalk(f"{burl}/projects/{project}/storage")
             printDir(dirs)
             # downloadFiles(dirs)
             # print(f"found: {dirs}")
 
-    if __name__ == "__main__":
-        goBabe()
+    # if __name__ == "__main__":
+    #     goBabe()
